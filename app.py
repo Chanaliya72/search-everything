@@ -5,7 +5,10 @@ import os
 # Configuration
 st.set_page_config(page_title="Link Hub", page_icon="🔗")
 DATA_FILE = "links_data.json"
-ADMIN_PASSWORD = "admin" # Change this to a secure password!
+
+# --- UPDATED PASSWORD ---
+ADMIN_PASSWORD = "Paras@72" 
+# ------------------------
 
 # Data Management
 def load_links():
@@ -30,20 +33,22 @@ st.title("Welcome to Link Hub")
 with st.sidebar:
     st.header("Admin Panel")
     if not st.session_state.is_admin:
+        # The text_input type="password" hides the characters as they are typed
         pwd = st.text_input("Password", type="password")
         if st.button("Login"):
+            # This line strictly confirms the password matches 'Paras@72' exactly
             if pwd == ADMIN_PASSWORD:
                 st.session_state.is_admin = True
                 st.rerun()
             else:
-                st.error("Incorrect password")
+                st.error("Incorrect password. Access denied.")
     else:
         st.success("Logged in as Admin")
         if st.button("Logout"):
             st.session_state.is_admin = False
             st.rerun()
 
-# Admin Controls
+# Admin Controls (Only visible if password was correct)
 if st.session_state.is_admin:
     st.subheader("Add New Link")
     with st.form("add_link"):
@@ -57,7 +62,7 @@ if st.session_state.is_admin:
                 save_links(st.session_state.links)
                 st.rerun()
 
-# Public Directory
+# Public Directory (Visible to everyone)
 st.divider()
 st.subheader("Directory")
 
@@ -69,6 +74,7 @@ else:
         with col1:
             st.markdown(f"🔗 **[{link['title']}]({link['url']})**")
         with col2:
+            # Only the admin sees the delete buttons
             if st.session_state.is_admin:
                 if st.button("Delete", key=f"del_{i}"):
                     st.session_state.links.pop(i)
