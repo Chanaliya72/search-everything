@@ -1,32 +1,76 @@
 import streamlit as st
+import json
+import os
 
-# Page setup
+# Configuration
 st.set_page_config(page_title="Link Hub", page_icon="🔗")
+DATA_FILE = "links_data.json"
+ADMIN_PASSWORD = "admin" # Change this to a secure password!
+
+# Data Management
+def load_links():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_links(links):
+    with open(DATA_FILE, "w") as f:
+        json.dump(links, f)
+
+# State Initialization
+if 'links' not in st.session_state:
+    st.session_state.links = load_links()
+if 'is_admin' not in st.session_state:
+    st.session_state.is_admin = False
+
 st.title("Welcome to Link Hub")
-st.write("Share and discover interesting websites")
 
-# Setup a temporary place to store links while the app runs
-if 'saved_links' not in st.session_state:
-    st.session_state.saved_links = []
+# Admin Login (Sidebar)
+with st.sidebar:
+    st.header("Admin Panel")
+    if not st.session_state.is_admin:
+        pwd = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if pwd == ADMIN_PASSWORD:
+                st.session_state.is_admin = True
+                st.rerun()
+            else:
+                st.error("Incorrect password")
+    else:
+        st.success("Logged in as Admin")
+        if st.button("Logout"):
+            st.session_state.is_admin = False
+            st.rerun()
 
-# The input form
-with st.form("add_link_form", clear_on_submit=True):
-    title = st.text_input("Website Name (e.g., Python Docs)")
-    url = st.text_input("URL (e.g., python.org)")
-    submitted = st.form_submit_button("Add to Directory")
-    
-    if submitted and url:
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
-        st.session_state.saved_links.append({'title': title or url, 'url': url})
-        st.success(f"Added {title or url}!")
+# Admin Controls
+if st.session_state.is_admin:
+    st.subheader("Add New Link")
+    with st.form("add_link"):
+        title = st.text_input("Website Name")
+        url = st.text_input("URL")
+        if st.form_submit_button("Add"):
+            if title and url:
+                if not url.startswith(('http://', 'https://')):
+                    url = 'https://' + url
+                st.session_state.links.append({"title": title, "url": url})
+                save_links(st.session_state.links)
+                st.rerun()
 
-# Display the links
+# Public Directory
 st.divider()
 st.subheader("Directory")
 
-if st.session_state.saved_links:
-    for link in st.session_state.saved_links:
-        st.markdown(f"### 🔗 [{link['title']}]({link['url']})")
+if not st.session_state.links:
+    st.info("No links available.")
 else:
-    st.info("No links have been added yet.")
+    for i, link in enumerate(st.session_state.links):
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.markdown(f"🔗 **[{link['title']}]({link['url']})**")
+        with col2:
+            if st.session_state.is_admin:
+                if st.button("Delete", key=f"del_{i}"):
+                    st.session_state.links.pop(i)
+                    save_links(st.session_state.links)
+                    st.rerun()
